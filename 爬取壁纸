@@ -1,0 +1,47 @@
+import requests
+from lxml import etree
+import re
+import json
+from concurrent.futures import ThreadPoolExecutor
+
+url ='https://desk.zol.com.cn/'
+def get_imgurl(url):
+    url_list =[]
+    res = requests.get(url)
+    res.encoding = 'gbk'
+    et = etree.HTML(res.text)
+    items = et.xpath('//ul[@class="pic-list2 clearfix"]/li/a/@href')
+    for item in items:
+        item = "https://desk.zol.com.cn"+ item
+        url_list.append(item)
+    return url_list
+
+def get_imgsrc():
+    imgsrc_list = []
+    lista =  get_imgurl(url)
+    for item in lista:
+        res = requests.get(item)
+        obj = re.compile(r"var deskPicArr.*?=.*?(?P<content>.*?);",re.S)
+        content = obj.search(res.text).group("content")
+        results = json.loads(content).get('list')#得到的是字符串需要变成字典
+        listb = []
+        for result in results:
+            ori = result['oriSize']
+            imgsrc = result['imgsrc'].replace('##SIZE##',f'{ori}')
+            listb.append(imgsrc)#分类图片一组
+        imgsrc_list.extend(listb)#每一大页的图片
+    return imgsrc_list
+
+def down_load_img(img_src):
+    name = img_src.split('/')[-1]
+    img = requests.get(img_src)
+    with open(f'imgs/{name}','wb') as f:
+        print(f'开始下载{name}')
+        f.write(img.content)
+if __name__ == "__main__":
+    with ThreadPoolExecutor(10) as t:
+        number = 0
+        for img_src in get_imgsrc():
+            t.submit(down_load_img ,img_src)
+            number+=1
+        print(f'一共下载{number}张壁纸')
