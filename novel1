@@ -1,0 +1,39 @@
+# -*- coding:utf-8 -*-
+'''
+第一章
+'''
+import requests
+from lxml import etree
+import re
+# 第一步：获取章节url
+url1 ='https://www.jujiazy.com/book/45696/'
+header = {
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/104.0.0.0 Safari/537.36'}
+r = requests.get(url1 , headers = header)
+
+et = etree.HTML(r.text)
+
+hrefs = et.xpath('//dd/a/@href')
+urls=[]
+for href in hrefs:
+    urls.append("https://www.jujiazy.com"+ href)
+# print(urls)
+
+# 第二步获取所有章节内容
+# 第二步未完成
+all=[]
+for url in urls:
+    html = requests.get(url,headers=header)
+    et1 = etree.HTML(html.text)
+
+    contents = et1.xpath('//div[@id="content"]/text()')
+
+    chapter=[]
+    for content in contents:
+        chapter.append(content.split('\u3000\u3000')[1])
+    all.extend(chapter)
+print(all)
+
+
+
+
